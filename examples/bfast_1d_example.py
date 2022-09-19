@@ -1,3 +1,4 @@
+import datetime
 import numpy as np
 np.set_printoptions(precision=2, linewidth=120)
 
@@ -6,7 +7,7 @@ import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
 import bfast
-from datasets import *
+#from datasets import *
 
 
 def interp_nans(x):
@@ -14,13 +15,13 @@ def interp_nans(x):
     nans = x_nn[np.isnan(x)]
     return x_nn, nans
 
-def plot(name, y, x, f, season, level=0.05, h=0.15, max_iter=10, nan_clr="crimson"):
+def plot(name, y, x, f, season, level=0.05, h=0.15, max_iter=10, nan_clr="crimson", nan_value=0):
     def segmented_plot(arr, bp):
         prev = 0
         vals = np.concatenate((bp, [arr.shape[0] - 1]))
         for i, s in enumerate(vals + 1):
             ind = max(0, prev-1)
-            ax.plot(x[ind:s], arr[ind:s], label="seg {}".format(i+1))
+            ax.plot(x[ind:s-1], arr[ind:s-1], label="seg {}".format(i+1))
             ax.legend()
             prev = s
 
@@ -32,7 +33,7 @@ def plot(name, y, x, f, season, level=0.05, h=0.15, max_iter=10, nan_clr="crimso
     print("Plotting {}".format(name))
     y = y.reshape((y.shape[0], 1, 1))
     vo = bfast.BFAST(frequency=f, season_type=season, level=level, h=h, max_iter=max_iter)
-    vo.fit(y, x)
+    vo.fit(y, x, nan_value=nan_value)
     nans = np.isnan(y).any()
 
     x_n = x[np.isnan(y[:,0,0])]
@@ -104,9 +105,36 @@ def plot(name, y, x, f, season, level=0.05, h=0.15, max_iter=10, nan_clr="crimso
     # plt.savefig(name.lower() + ".png", bbox_inches ="tight")
     plt.show()
 
+def year_fraction(date):
+    start = datetime.date(date.year, 1, 1).toordinal()
+    year_length = datetime.date(date.year+1, 1, 1).toordinal() - start
+    return date.year + float(date.toordinal() - start) / year_length
+
 
 if __name__ == "__main__":
-    plot("harvest", harvest, harvest_dates, harvest_freq, "harmonic")
-    plot("nile", nile, nile_dates, None, "none")
-    plot("SIMTS", simts_sum, simts_dates, simts_freq, "harmonic", level=0.35, h=0.3, max_iter=2)
-    plot("NDVI", ndvi, ndvi_dates, ndvi_freq, "dummy")
+    
+    nan_value = -32768
+    df = pd.read_csv(r'data/GroundCover.csv')
+    data = 100-np.array(df['bare50percentile'])
+    
+    dates = pd.to_datetime(df['date'])
+    dates_frac = np.array(dates.dt.year + dates.dt.dayofyear/365)
+    
+    dates_frac = dates_frac[~np.isnan(data)]
+    data = data[~np.isnan(data)]
+    
+    #data_ints = data
+    #data = np.copy(data_ints).astype(np.float32)
+
+    # set NaN values
+    #data[data_ints==nan_value] = np.nan
+    
+    # with open(r'data/dates.txt') as f:
+    #     dates = f.read().split('\n')
+    #     dates = np.array([year_fraction(datetime.datetime.strptime(d, '%Y-%m-%d')) for d in dates if len(d) > 0])
+        
+    freq = 16
+    plot("Ground cover", data, dates_frac, freq, "harmonic", nan_value=nan_value)
+    # plot("nile", nile, nile_dates, None, "none")
+    # plot("SIMTS", simts_sum, simts_dates, simts_freq, "harmonic", level=0.35, h=0.3, max_iter=2)
+    # plot("NDVI", ndvi, ndvi_dates, ndvi_freq, "dummy")

@@ -376,7 +376,7 @@ class BFAST(object):
         self.backend = backend
         self.verbose = verbose
 
-    def fit(self, Yt, ti):
+    def fit(self, Yt, ti, nan_value=0):
         """ Fits the models for the ndarray 'data'
 
         Parameters
@@ -387,7 +387,11 @@ class BFAST(object):
             and H the width and the height
             of the image, respectively.
         ti : array
-
+        
+        nan_value : int, default 0
+            Specified the NaN value used in
+            the array data
+            
         Returns
         -------
         self : The BFAST object.
@@ -413,7 +417,8 @@ class BFAST(object):
 
         # fit BFASTMonitor models
         self._model.fit(Yt=Yt,
-                        ti=ti)
+                        ti=ti,
+                        nan_value=nan_value)
         self._model_fitted = True
 
         return self

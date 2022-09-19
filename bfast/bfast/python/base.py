@@ -79,7 +79,7 @@ class BFASTPython(BFASTBase):
                                           verbose=verbose)
 
 
-    def fit(self, Yt, ti):
+    def fit(self, Yt, ti, nan_value=0):
         """ Fits the model
 
         Parameters
@@ -92,11 +92,23 @@ class BFASTPython(BFASTBase):
         ti : array of float32
             dates (as floats) s.t. 1 January 2020 becomes 2020.00
             31 December 2020 becomes 2020.99
+            
+        nan_value : int, default 0
+            Specified the NaN value used in
+            the array data
+
 
         Returns
         -------
         self : The BFAST object.
         """
+        
+        Yt_ints = Yt
+        Yt = np.copy(Yt_ints).astype(np.float32)
+
+        # set NaN values
+        Yt[Yt_ints==nan_value] = np.nan
+
         smod = self.build_seasonal_model(ti)
 
         trend_global = np.zeros(Yt.shape, dtype=np.float32)
